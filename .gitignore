@@ -1,3 +1,6 @@
 .idea/*
-target/*
 *.iml
+
+target/*
+
+twitter4j.properties
