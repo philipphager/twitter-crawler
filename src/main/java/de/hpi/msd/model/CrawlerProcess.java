@@ -1,9 +1,6 @@
 package de.hpi.msd.model;
 
-import twitter4j.RateLimitStatus;
-import twitter4j.Status;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
+import twitter4j.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CrawlerProcess implements Runnable {
+    private final static int PAGE_SIZE = 1000;
     private final Twitter twitter;
     private final Queue<CrawlTask> crawlerQueue;
     private final Set<Long> crawledUsers;
@@ -32,7 +30,7 @@ public class CrawlerProcess implements Runnable {
 
     @Override
     public void run() {
-        System.out.printf("%s: Creating new crawler thread.", name);
+        System.out.printf("%s: Creating new crawler thread.\n", name);
         CrawlTask task;
 
         while (!Thread.currentThread().isInterrupted()) {
@@ -49,7 +47,11 @@ public class CrawlerProcess implements Runnable {
                     crawlerQueue.add(task);
                     // Rate limit exceeded
                     RateLimitStatus rateLimitStatus = e.getRateLimitStatus();
-                    waitForReset(rateLimitStatus);
+                    if (rateLimitStatus != null) {
+                        waitForReset(rateLimitStatus);
+                    } else {
+                        e.printStackTrace();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -60,7 +62,7 @@ public class CrawlerProcess implements Runnable {
     private void waitForReset(RateLimitStatus rateLimitStatus) {
         if (rateLimitStatus.getRemaining() == 0) {
             try {
-                System.out.printf("%s: Rate limit succeeded. Waiting for %d mins.%n", name, rateLimitStatus.getSecondsUntilReset() / 60);
+                System.out.printf("%s: Rate limit succeeded. Waiting for %d mins.%n\n", name, rateLimitStatus.getSecondsUntilReset() / 60);
                 Thread.sleep(rateLimitStatus.getSecondsUntilReset() * 1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -69,17 +71,18 @@ public class CrawlerProcess implements Runnable {
     }
 
     private List<Status> getStatuses(CrawlTask task) throws TwitterException {
+        Paging paging = new Paging(1, PAGE_SIZE);
         List<Status> statuses;
 
         switch (task.getType()) {
             case TWEETS:
-                statuses = twitter.getUserTimeline(task.getUserId());
+                statuses = twitter.getUserTimeline(task.getUserId(), paging);
                 break;
             case RETWEETS:
                 statuses = twitter.getRetweets(task.getUserId());
                 break;
             case FAVORITES:
-                statuses = twitter.getFavorites(task.getUserId());
+                statuses = twitter.getFavorites(task.getUserId(), paging);
                 break;
             default:
                 throw new IllegalArgumentException("Tried to crawl unknown interaction type" + task.getType());

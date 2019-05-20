@@ -3,4 +3,5 @@
 
 target/*
 
-twitter4j.properties
+*.properties
+*.csv
