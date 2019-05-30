@@ -9,6 +9,7 @@ import twitter4j.User;
 import twitter4j.conf.Configuration;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +44,7 @@ public class Crawler {
 
             final String name = "task-" + i;
             final File file = new File(outputPath, String.format("tweets-%d.csv", i));
-            final CrawlerProcess crawlerProcess = new CrawlerProcess(twitter, taskQueue, crawledTasks, file, name);
+            final CrawlerProcess crawlerProcess = new CrawlerProcess(twitter, taskQueue, crawledTasks, new FileWriter(file), name);
             executorService.execute(crawlerProcess);
         }
 

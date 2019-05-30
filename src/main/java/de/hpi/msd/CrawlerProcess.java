@@ -30,12 +30,12 @@ public class CrawlerProcess implements Runnable {
     public CrawlerProcess(Twitter twitter,
                           Queue<CrawlTask> crawlerQueue,
                           Set<CrawlTask> crawledTasks,
-                          File file,
-                          String name) throws IOException {
+                          Writer writer,
+                          String name) {
         this.twitter = twitter;
         this.crawlerQueue = crawlerQueue;
         this.crawledTasks = crawledTasks;
-        this.writer = new FileWriter(file);
+        this.writer = writer;
         this.name = name;
     }
 
@@ -123,7 +123,9 @@ public class CrawlerProcess implements Runnable {
                 .flatMap(status -> status.isRetweet() ? Stream.of(status, status.getRetweetedStatus()) : Stream.of(status))
                 .map(status -> {
                     final long userId = status.getUser().getId();
-                    final long tweetId = status.getId();
+                    final long tweetId = status.isRetweet()
+                            ? status.getRetweetedStatus().getId()
+                            : status.getId();
                     final InteractionType interactionType = status.isRetweet()
                             ? InteractionType.RETWEETS
                             : InteractionType.TWEETS;
