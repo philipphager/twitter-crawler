@@ -20,8 +20,11 @@ import java.util.concurrent.TimeUnit;
 
 public class Main {
     // TODO: Add proper logger
+    // Exponential growth?
 
     public static void main(String[] args) throws TwitterException, InterruptedException, IOException {
+        assert args.length == 1 : "Please specify seed twitter user name to start crawling";
+
         final File configurationPath = new File("./configs");
         final File outputPath = new File("./output");
         final ConfigurationManager configurationManager = new ConfigurationManager(configurationPath);
@@ -37,7 +40,7 @@ public class Main {
             final Twitter twitter = new TwitterFactory(configurations.get(i)).getInstance();
 
             if (i == 0) {
-                final User user = twitter.showUser("neiltyson");
+                final User user = twitter.showUser(args[0]);
                 crawlQueue.add(new TimelineCrawlTask(user.getId()));
             }
 
