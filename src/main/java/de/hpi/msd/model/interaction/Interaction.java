@@ -1,4 +1,4 @@
-package de.hpi.msd.model;
+package de.hpi.msd.model.interaction;
 
 public final class Interaction {
     private final long userId;

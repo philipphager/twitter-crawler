@@ -1,4 +1,4 @@
-package de.hpi.msd.model;
+package de.hpi.msd.model.interaction;
 
 public enum InteractionType {
     TWEETS(0),
