@@ -19,8 +19,8 @@ import java.util.stream.Stream;
 public class CrawlerProcess implements Runnable {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger("de.hpi.msd.CrawlerProcess");
     private static final long MAX_RETWEETS = 500;
-    private final static int MAX_TIMELINE_TWEETS = 25;
-    private final static Paging TIMELINE_PAGING = new Paging(1, MAX_TIMELINE_TWEETS);
+    private static final int MAX_TIMELINE_TWEETS = 25;
+    private static final Paging TIMELINE_PAGING = new Paging(1, MAX_TIMELINE_TWEETS);
     private final Twitter twitter;
     private final Queue<CrawlTask> crawlerQueue;
     private final Set<CrawlTask> crawledTasks;
@@ -41,7 +41,7 @@ public class CrawlerProcess implements Runnable {
 
     @Override
     public void run() {
-        log.info("%s: Creating new task thread", name);
+        log.info("{}: Creating new task thread", name);
 
         CrawlTask task;
 
@@ -52,12 +52,12 @@ public class CrawlerProcess implements Runnable {
                         TimelineCrawlTask timelineCrawlTask = (TimelineCrawlTask) task;
                         crawlUserTimeline(timelineCrawlTask);
 
-                        log.debug("Crawled timeline of user: %d Queue: %d%n", timelineCrawlTask.getUserId(), crawlerQueue.size());
+                        log.debug("Crawled timeline of user: {} Queue: {}", timelineCrawlTask.getUserId(), crawlerQueue.size());
                     } else if (task instanceof RetweetCrawlTask) {
                         RetweetCrawlTask retweetCrawlTask = (RetweetCrawlTask) task;
                         crawlRetweets((RetweetCrawlTask) task);
 
-                        log.debug("Crawled retweets of tweet: %d Skip: %d Limit: %d Queue: %d%n",
+                        log.debug("Crawled retweets of tweet: {} Skip: {} Limit: {} Queue: {}",
                                 retweetCrawlTask.getTweetId(),
                                 retweetCrawlTask.getSkip(),
                                 retweetCrawlTask.getLimit(),
@@ -69,10 +69,10 @@ public class CrawlerProcess implements Runnable {
                     if (e.getRateLimitStatus() != null) {
                         waitForReset(e.getRateLimitStatus());
                     } else {
-                        log.error("%s: TwitterException while crawling", name, e);
+                        log.error("{}: TwitterException while crawling", name, e);
                     }
                 } catch (IOException e) {
-                    log.error("%s: IOException while crawling", name, e);
+                    log.error("{}: IOException while crawling", name, e);
                 }
             }
         }
@@ -82,10 +82,10 @@ public class CrawlerProcess implements Runnable {
         if (rateLimitStatus.getRemaining() == 0) {
             try {
                 int minutesUntilReset = rateLimitStatus.getSecondsUntilReset() / 60;
-                log.debug("%s: Rate limit succeeded. Waiting for %d mins", name, minutesUntilReset);
+                log.debug("{}: Rate limit succeeded. Waiting for {} mins", name, minutesUntilReset);
                 Thread.sleep(rateLimitStatus.getSecondsUntilReset() * 1000);
             } catch (InterruptedException e) {
-                log.error("%s: Interrupted while waiting for API rate limit reset", name, e);
+                log.error("{}: Interrupted while waiting for API rate limit reset", name, e);
             }
         }
     }
