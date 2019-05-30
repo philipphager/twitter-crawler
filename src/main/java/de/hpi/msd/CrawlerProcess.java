@@ -5,6 +5,7 @@ import de.hpi.msd.model.interaction.InteractionType;
 import de.hpi.msd.model.task.CrawlTask;
 import de.hpi.msd.model.task.RetweetCrawlTask;
 import de.hpi.msd.model.task.TimelineCrawlTask;
+import org.slf4j.LoggerFactory;
 import twitter4j.*;
 
 import java.io.File;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CrawlerProcess implements Runnable {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger("de.hpi.msd.CrawlerProcess");
     private static final long MAX_RETWEETS = 500;
     private final static int MAX_TIMELINE_TWEETS = 25;
     private final static Paging TIMELINE_PAGING = new Paging(1, MAX_TIMELINE_TWEETS);
@@ -39,7 +41,8 @@ public class CrawlerProcess implements Runnable {
 
     @Override
     public void run() {
-        System.out.printf("%s: Creating new task thread.\n", name);
+        log.info("%s: Creating new task thread", name);
+
         CrawlTask task;
 
         while (!Thread.currentThread().isInterrupted()) {
@@ -47,29 +50,29 @@ public class CrawlerProcess implements Runnable {
                 try {
                     if (task instanceof TimelineCrawlTask) {
                         TimelineCrawlTask timelineCrawlTask = (TimelineCrawlTask) task;
-
-                        System.out.println("Crawl timeline: " + timelineCrawlTask.getUserId() + " Queue: " + crawlerQueue.size());
                         crawlUserTimeline(timelineCrawlTask);
+
+                        log.debug("Crawled timeline of user: %d Queue: %d%n", timelineCrawlTask.getUserId(), crawlerQueue.size());
                     } else if (task instanceof RetweetCrawlTask) {
                         RetweetCrawlTask retweetCrawlTask = (RetweetCrawlTask) task;
-                        System.out.println("Crawl retweets " + retweetCrawlTask.getTweetId()
-                                + " Skip: " + retweetCrawlTask.getSkip()
-                                + " Limit: " + retweetCrawlTask.getLimit()
-                                + " Queue: " + crawlerQueue.size());
                         crawlRetweets((RetweetCrawlTask) task);
+
+                        log.debug("Crawled retweets of tweet: %d Skip: %d Limit: %d Queue: %d%n",
+                                retweetCrawlTask.getTweetId(),
+                                retweetCrawlTask.getSkip(),
+                                retweetCrawlTask.getLimit(),
+                                crawlerQueue.size());
                     }
                 } catch (TwitterException e) {
                     crawlerQueue.add(task);
 
-                    final RateLimitStatus rateLimitStatus = e.getRateLimitStatus();
-
-                    if (rateLimitStatus != null) {
-                        waitForReset(rateLimitStatus);
+                    if (e.getRateLimitStatus() != null) {
+                        waitForReset(e.getRateLimitStatus());
                     } else {
-                        e.printStackTrace();
+                        log.error("%s: TwitterException while crawling", name, e);
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error("%s: IOException while crawling", name, e);
                 }
             }
         }
@@ -78,10 +81,11 @@ public class CrawlerProcess implements Runnable {
     private void waitForReset(RateLimitStatus rateLimitStatus) {
         if (rateLimitStatus.getRemaining() == 0) {
             try {
-                System.out.printf("%s: Rate limit succeeded. Waiting for %d mins.%n\n", name, rateLimitStatus.getSecondsUntilReset() / 60);
+                int minutesUntilReset = rateLimitStatus.getSecondsUntilReset() / 60;
+                log.debug("%s: Rate limit succeeded. Waiting for %d mins", name, minutesUntilReset);
                 Thread.sleep(rateLimitStatus.getSecondsUntilReset() * 1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("%s: Interrupted while waiting for API rate limit reset", name, e);
             }
         }
     }
