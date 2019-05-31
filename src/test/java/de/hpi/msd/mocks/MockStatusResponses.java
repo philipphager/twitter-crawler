@@ -27,4 +27,7 @@ public class MockStatusResponses {
     public static final List<Status> TRUMP_RETWEETS = Arrays.asList(
             new MockStatus(10001230, MOCK_USER_TYSON, new MockStatus(10001230, MOCK_USER_TRUMP)),
             new MockStatus(10008593, MOCK_USER_NYE, new MockStatus(10001230, MOCK_USER_TRUMP)));
+
+    public static final List<Status> HUNDRED_TRUMP_RETWEETS = Collections.nCopies(100,
+            new MockStatus(10008593, MOCK_USER_NYE, new MockStatus(10001230, MOCK_USER_TRUMP)));
 }

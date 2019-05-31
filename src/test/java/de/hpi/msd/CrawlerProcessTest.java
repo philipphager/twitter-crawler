@@ -28,6 +28,7 @@ import static de.hpi.msd.mocks.MockResponseList.asResponse;
 import static de.hpi.msd.mocks.MockStatusResponses.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -144,6 +145,42 @@ public class CrawlerProcessTest {
 
         verifyFileWrites(MOCK_USER_TYSON, trumpTweet, InteractionType.RETWEETS);
         verifyFileWrites(MOCK_USER_NYE, trumpTweet, InteractionType.RETWEETS);
+    }
+
+    @Test
+    public void crawlRetweetAuthor() throws Exception {
+        givenUserTweets(SINGLE_TYSON_RETWEET);
+        givenRetweeters(EMPTY_STATUS);
+
+        crawlTasks.add(new TimelineCrawlTask(MOCK_USER_TYSON.getId()));
+
+        final ExecutorService service = Executors.newSingleThreadExecutor();
+        service.execute(crawlerProcess);
+
+        service.shutdown();
+        service.awaitTermination(5, TimeUnit.SECONDS);
+
+        verify(twitter).getUserTimeline(MOCK_USER_TYSON.getId(), new Paging(1, 25));
+        verify(twitter).getUserTimeline(MOCK_USER_TRUMP.getId(), new Paging(1, 25));
+    }
+
+    @Test
+    public void crawlAllRetweetersOfTweet() throws Exception {
+        givenUserTweets(EMPTY_STATUS);
+        when(twitter.getRetweeterIds(anyLong(), anyInt(), anyLong()))
+                .thenReturn(asUserIds(HUNDRED_TRUMP_RETWEETS))
+                .thenReturn(asUserIds(EMPTY_STATUS));
+
+        crawlTasks.add(new RetweetCrawlTask(SINGLE_TRUMP_TWEET.get(0).getId(), 0, 100));
+
+        final ExecutorService service = Executors.newSingleThreadExecutor();
+        service.execute(crawlerProcess);
+
+        service.shutdown();
+        service.awaitTermination(5, TimeUnit.SECONDS);
+
+        verify(twitter).getRetweeterIds(SINGLE_TRUMP_TWEET.get(0).getId(), 100, 0);
+        verify(twitter).getRetweeterIds(SINGLE_TRUMP_TWEET.get(0).getId(), 100, 100);
     }
 
     private void givenUserTweets(List<Status> statuses) throws TwitterException {
